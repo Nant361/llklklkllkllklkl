@@ -2,12 +2,12 @@ import requests
 import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import (
-    Application, 
+    Updater, 
     CommandHandler, 
     MessageHandler, 
     CallbackQueryHandler, 
-    filters,
-    ContextTypes
+    Filters,
+    CallbackContext
 )
 import asyncio
 import os
@@ -158,7 +158,7 @@ async def send_notification_to_admin(user_id: int, username: str, message: str):
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_message(update: Update, context: CallbackContext):
     """Handle all incoming messages"""
     try:
         print("\n=== Handling Message ===")
@@ -304,7 +304,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
 
-async def cleanup_user_session(context: ContextTypes.DEFAULT_TYPE):
+async def cleanup_user_session(context: CallbackContext):
     """Cleanup user session when done"""
     if 'session' in context.user_data:
         try:
@@ -314,7 +314,7 @@ async def cleanup_user_session(context: ContextTypes.DEFAULT_TYPE):
         finally:
             del context.user_data['session']
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: CallbackContext):
     """Handle /start command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
@@ -341,7 +341,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✈️ Contact: @nant12_bot"
     )
 
-async def show_progress(update: Update, context: ContextTypes.DEFAULT_TYPE, total_steps: int):
+async def show_progress(update: Update, context: CallbackContext, total_steps: int):
     """Show progress bar during search"""
     progress_message = await update.message.reply_text("🔍 Mencari data mahasiswa...\n[▱▱▱▱▱▱▱▱▱▱] 0%")
     return progress_message
@@ -351,7 +351,7 @@ async def update_progress(progress_message, progress: int):
     bar = "▰" * progress + "▱" * (10 - progress)
     await progress_message.edit_text(f"🔍 Mencari data mahasiswa...\n[{bar}] {progress*10}%")
 
-async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def search(update: Update, context: CallbackContext):
     """Handle /search command"""
     try:
         user_id = update.effective_user.id
@@ -523,7 +523,7 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in search: {str(e)}")
         await update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
 
-async def show_loading(update: Update, context: ContextTypes.DEFAULT_TYPE, message: str):
+async def show_loading(update: Update, context: CallbackContext, message: str):
     """Show loading animation"""
     loading_message = await update.callback_query.message.reply_text(f"⏳ {message}")
     return loading_message
@@ -710,7 +710,7 @@ def format_student_detail(detail):
         logger.error(f"Error formatting student detail: {str(e)}")
         return ["❌ Terjadi kesalahan saat memformat data mahasiswa."]
 
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def button_callback(update: Update, context: CallbackContext):
     """Handle button callbacks"""
     query = update.callback_query
     await query.answer()
@@ -876,7 +876,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in button_callback: {str(e)}")
         await query.message.edit_text(f"❌ Terjadi kesalahan: {str(e)}")
 
-async def register_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def register_user(update: Update, context: CallbackContext):
     """Handle /regist command"""
     try:
         user_id = update.effective_user.id
@@ -955,31 +955,32 @@ def main():
             return
         
         # Create the Application
-        application = Application.builder().token(TOKEN).build()
+        application = Updater(TOKEN)
 
         # Add handlers
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler("cari", search))
-        application.add_handler(CommandHandler("regist", register_user))
-        application.add_handler(CallbackQueryHandler(button_callback))
+        application.dispatcher.add_handler(CommandHandler("start", start))
+        application.dispatcher.add_handler(CommandHandler("cari", search))
+        application.dispatcher.add_handler(CommandHandler("regist", register_user))
+        application.dispatcher.add_handler(CallbackQueryHandler(button_callback))
         
         # Add handlers for all types of messages
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-        application.add_handler(MessageHandler(filters.PHOTO, handle_message))
-        application.add_handler(MessageHandler(filters.Document.ALL, handle_message))
-        application.add_handler(MessageHandler(filters.VOICE, handle_message))
-        application.add_handler(MessageHandler(filters.VIDEO, handle_message))
-        application.add_handler(MessageHandler(filters.Sticker.ALL, handle_message))
-        application.add_handler(MessageHandler(filters.Location.ALL, handle_message))
-        application.add_handler(MessageHandler(filters.Contact.ALL, handle_message))
-        application.add_handler(MessageHandler(filters.ANIMATION, handle_message))
-        application.add_handler(MessageHandler(filters.AUDIO, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.TEXT & ~Filters.COMMAND, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.PHOTO, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.Document.ALL, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.VOICE, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.VIDEO, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.Sticker.ALL, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.Location.ALL, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.Contact.ALL, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.ANIMATION, handle_message))
+        application.dispatcher.add_handler(MessageHandler(Filters.AUDIO, handle_message))
 
         print("Handlers registered successfully")
         print("Starting polling...")
 
         # Start the bot
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        application.start_polling()
+        application.idle()
     except Exception as e:
         logger.error(f"Error starting bot: {str(e)}")
         print(f"Error starting bot: {str(e)}")

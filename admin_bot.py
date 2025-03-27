@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # Bot token
 ADMIN_TOKEN = "7225070551:AAHOwwMUwQBZqYsKksd7HRjJEdt2kutjLp4"
@@ -61,7 +61,7 @@ def log_activity(user_id, username, action, details=""):
     })
     save_logs(logs)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: CallbackContext):
     """Handle /start command"""
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
@@ -85,7 +85,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✈️ Contact: @nant12_bot"
     )
 
-async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def list_users(update: Update, context: CallbackContext):
     """Handle /list command"""
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
@@ -109,7 +109,7 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error listing users: {str(e)}")
         await update.message.reply_text("❌ Terjadi kesalahan saat mengambil daftar pengguna.")
 
-async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def add_user(update: Update, context: CallbackContext):
     """Handle /add command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
@@ -153,7 +153,7 @@ async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error adding user: {str(e)}")
         await update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
 
-async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def remove_user(update: Update, context: CallbackContext):
     """Handle /remove command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
@@ -189,7 +189,7 @@ async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error removing user: {str(e)}")
         await update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
 
-async def view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def view_logs(update: Update, context: CallbackContext):
     """Handle /logs command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
@@ -219,7 +219,7 @@ async def view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_activity(user_id, username, "view_logs", "Viewed recent logs")
     await update.message.reply_text(message)
 
-async def get_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_user_id(update: Update, context: CallbackContext):
     """Handle /getid command and forwarded messages"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
@@ -243,7 +243,7 @@ async def get_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_activity(user_id, username, "get_user_id", f"Got user info: {user_info}")
     await message.reply_text(f"ℹ️ Informasi pengirim:\n\n{user_info}")
 
-async def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_chat_id(update: Update, context: CallbackContext):
     """Get the current chat ID"""
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
@@ -255,21 +255,22 @@ async def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     """Start the bot"""
     try:
-        # Create the Application
-        application = Application.builder().token(ADMIN_TOKEN).build()
+        # Create the Updater
+        updater = Updater(ADMIN_TOKEN)
 
         # Add handlers
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler("list", list_users))
-        application.add_handler(CommandHandler("add", add_user))
-        application.add_handler(CommandHandler("remove", remove_user))
-        application.add_handler(CommandHandler("logs", view_logs))
-        application.add_handler(CommandHandler("getid", get_user_id))
-        application.add_handler(CommandHandler("chatid", get_chat_id))
+        updater.dispatcher.add_handler(CommandHandler("start", start))
+        updater.dispatcher.add_handler(CommandHandler("list", list_users))
+        updater.dispatcher.add_handler(CommandHandler("add", add_user))
+        updater.dispatcher.add_handler(CommandHandler("remove", remove_user))
+        updater.dispatcher.add_handler(CommandHandler("logs", view_logs))
+        updater.dispatcher.add_handler(CommandHandler("getid", get_user_id))
+        updater.dispatcher.add_handler(CommandHandler("chatid", get_chat_id))
 
         # Start the bot
         print("Starting Admin Bot...")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        updater.start_polling()
+        updater.idle()
     except Exception as e:
         print(f"Error starting admin bot: {str(e)}")
 

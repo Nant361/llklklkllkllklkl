@@ -1,7 +1,7 @@
 import logging
 import signal
 import sys
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 import admin_bot
 import telegram_bot
 
@@ -32,7 +32,7 @@ def run_admin_bot():
         dispatcher.add_handler(CommandHandler("logs", admin_bot.view_logs))
         dispatcher.add_handler(CommandHandler("getid", admin_bot.get_user_id))
         dispatcher.add_handler(CommandHandler("chatid", admin_bot.get_chat_id))
-        dispatcher.add_handler(MessageHandler(admin_bot.filters.FORWARDED, admin_bot.get_user_id))
+        dispatcher.add_handler(MessageHandler(Filters.FORWARDED, admin_bot.get_user_id))
 
         logger.info("Admin Bot is ready!")
         # Start the Bot
@@ -59,16 +59,16 @@ def run_student_bot():
         dispatcher.add_handler(CommandHandler("cari", telegram_bot.search))
         dispatcher.add_handler(CommandHandler("regist", telegram_bot.register_user))
         dispatcher.add_handler(CallbackQueryHandler(telegram_bot.button_callback))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.TEXT & ~telegram_bot.filters.COMMAND, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.PHOTO, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.Document.ALL, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.VOICE, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.VIDEO, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.Sticker.ALL, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.LOCATION, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.CONTACT, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.ANIMATION, telegram_bot.handle_message))
-        dispatcher.add_handler(MessageHandler(telegram_bot.filters.AUDIO, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.TEXT & ~Filters.COMMAND, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.PHOTO, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.DOCUMENT, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.VOICE, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.VIDEO, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.STICKER, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.LOCATION, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.CONTACT, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.ANIMATION, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(Filters.AUDIO, telegram_bot.handle_message))
 
         logger.info("Student Search Bot is ready!")
         # Start the Bot
