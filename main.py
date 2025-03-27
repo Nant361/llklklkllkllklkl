@@ -1,11 +1,9 @@
-import multiprocessing
 import logging
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler
-import admin_bot
-import telegram_bot
 import signal
 import sys
-import asyncio
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler
+import admin_bot
+import telegram_bot
 
 # Setup logging
 logging.basicConfig(
@@ -14,79 +12,87 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def run_admin_bot():
+# Global updaters for signal handling
+admin_updater = None
+student_updater = None
+
+def run_admin_bot():
     """Run the admin bot"""
+    global admin_updater
     try:
         logger.info("Starting Admin Bot...")
-        application = Application.builder().token(admin_bot.ADMIN_TOKEN).build()
+        admin_updater = Updater(admin_bot.ADMIN_TOKEN)
+        dispatcher = admin_updater.dispatcher
 
         # Add handlers
-        handlers = [
-            CommandHandler("start", admin_bot.start),
-            CommandHandler("list", admin_bot.list_users),
-            CommandHandler("add", admin_bot.add_user),
-            CommandHandler("remove", admin_bot.remove_user),
-            CommandHandler("logs", admin_bot.view_logs),
-            CommandHandler("getid", admin_bot.get_user_id),
-            CommandHandler("chatid", admin_bot.get_chat_id),
-            MessageHandler(admin_bot.filters.FORWARDED, admin_bot.get_user_id)
-        ]
-        
-        for handler in handlers:
-            application.add_handler(handler)
+        dispatcher.add_handler(CommandHandler("start", admin_bot.start))
+        dispatcher.add_handler(CommandHandler("list", admin_bot.list_users))
+        dispatcher.add_handler(CommandHandler("add", admin_bot.add_user))
+        dispatcher.add_handler(CommandHandler("remove", admin_bot.remove_user))
+        dispatcher.add_handler(CommandHandler("logs", admin_bot.view_logs))
+        dispatcher.add_handler(CommandHandler("getid", admin_bot.get_user_id))
+        dispatcher.add_handler(CommandHandler("chatid", admin_bot.get_chat_id))
+        dispatcher.add_handler(MessageHandler(admin_bot.filters.FORWARDED, admin_bot.get_user_id))
 
         logger.info("Admin Bot is ready!")
-        await application.initialize()
-        await application.start()
-        await application.run_polling(allowed_updates=admin_bot.Update.ALL_TYPES)
+        # Start the Bot
+        admin_updater.start_polling()
             
     except Exception as e:
         logger.error(f"Error in Admin Bot: {str(e)}", exc_info=True)
-        sys.exit(1)
+        if admin_updater:
+            admin_updater.stop()
+        return False
+    
+    return True
 
-async def run_student_bot():
+def run_student_bot():
     """Run the student search bot"""
+    global student_updater
     try:
         logger.info("Starting Student Search Bot...")
-        application = Application.builder().token(telegram_bot.TOKEN).build()
+        student_updater = Updater(telegram_bot.TOKEN)
+        dispatcher = student_updater.dispatcher
 
         # Add handlers
-        handlers = [
-            CommandHandler("start", telegram_bot.start),
-            CommandHandler("cari", telegram_bot.search),
-            CommandHandler("regist", telegram_bot.register_user),
-            CallbackQueryHandler(telegram_bot.button_callback),
-            MessageHandler(telegram_bot.filters.TEXT & ~telegram_bot.filters.COMMAND, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.PHOTO, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.Document.ALL, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.VOICE, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.VIDEO, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.Sticker.ALL, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.LOCATION, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.CONTACT, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.ANIMATION, telegram_bot.handle_message),
-            MessageHandler(telegram_bot.filters.AUDIO, telegram_bot.handle_message)
-        ]
-        
-        for handler in handlers:
-            application.add_handler(handler)
+        dispatcher.add_handler(CommandHandler("start", telegram_bot.start))
+        dispatcher.add_handler(CommandHandler("cari", telegram_bot.search))
+        dispatcher.add_handler(CommandHandler("regist", telegram_bot.register_user))
+        dispatcher.add_handler(CallbackQueryHandler(telegram_bot.button_callback))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.TEXT & ~telegram_bot.filters.COMMAND, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.PHOTO, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.Document.ALL, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.VOICE, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.VIDEO, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.Sticker.ALL, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.LOCATION, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.CONTACT, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.ANIMATION, telegram_bot.handle_message))
+        dispatcher.add_handler(MessageHandler(telegram_bot.filters.AUDIO, telegram_bot.handle_message))
 
         logger.info("Student Search Bot is ready!")
-        await application.initialize()
-        await application.start()
-        await application.run_polling(allowed_updates=telegram_bot.Update.ALL_TYPES)
+        # Start the Bot
+        student_updater.start_polling()
             
     except Exception as e:
         logger.error(f"Error in Student Search Bot: {str(e)}", exc_info=True)
-        sys.exit(1)
+        if student_updater:
+            student_updater.stop()
+        return False
+    
+    return True
 
 def signal_handler(signum, frame):
     """Handle termination signals"""
     logger.info("Received termination signal. Shutting down bots...")
+    if admin_updater:
+        admin_updater.stop()
+    if student_updater:
+        student_updater.stop()
     sys.exit(0)
 
-async def main():
-    """Run both bots concurrently"""
+def main():
+    """Run both bots"""
     try:
         # Register signal handlers
         signal.signal(signal.SIGINT, signal_handler)
@@ -94,12 +100,28 @@ async def main():
         
         logger.info("Starting both bots...")
         
-        # Run both bots concurrently
-        await asyncio.gather(run_admin_bot(), run_student_bot())
+        # Start both bots
+        admin_success = run_admin_bot()
+        student_success = run_student_bot()
+        
+        if not admin_success or not student_success:
+            logger.error("Failed to start one or both bots. Exiting...")
+            if admin_updater:
+                admin_updater.stop()
+            if student_updater:
+                student_updater.stop()
+            return
+
+        # Keep the program running
+        admin_updater.idle()
         
     except Exception as e:
         logger.error(f"Error in main process: {str(e)}", exc_info=True)
+        if admin_updater:
+            admin_updater.stop()
+        if student_updater:
+            student_updater.stop()
         sys.exit(1)
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    main() 
