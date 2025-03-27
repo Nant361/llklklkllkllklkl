@@ -61,13 +61,13 @@ def log_activity(user_id, username, action, details=""):
     })
     save_logs(logs)
 
-async def start(update: Update, context: CallbackContext):
+def start(update: Update, context: CallbackContext):
     """Handle /start command"""
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
         
-    await update.message.reply_text(
+    update.message.reply_text(
         "👋 Welcome to Admin Bot\n\n"
         "🔑 Available Commands:\n"
         "-------------------\n"
@@ -85,16 +85,16 @@ async def start(update: Update, context: CallbackContext):
         "✈️ Contact: @nant12_bot"
     )
 
-async def list_users(update: Update, context: CallbackContext):
+def list_users(update: Update, context: CallbackContext):
     """Handle /list command"""
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
         
     try:
         allowed_users = load_allowed_users()
         if not allowed_users.get('users'):
-            await update.message.reply_text("📝 Belum ada pengguna yang diizinkan.")
+            update.message.reply_text("📝 Belum ada pengguna yang diizinkan.")
             return
             
         message = "📋 *Daftar Pengguna yang Diizinkan:*\n\n"
@@ -103,23 +103,23 @@ async def list_users(update: Update, context: CallbackContext):
             message += f"  Username: @{user.get('username', 'N/A')}\n"
             message += f"  Ditambahkan: {user.get('added_at', 'N/A')}\n\n"
             
-        await update.message.reply_text(message, parse_mode='Markdown')
+        update.message.reply_text(message, parse_mode='Markdown')
         
     except Exception as e:
         print(f"Error listing users: {str(e)}")
-        await update.message.reply_text("❌ Terjadi kesalahan saat mengambil daftar pengguna.")
+        update.message.reply_text("❌ Terjadi kesalahan saat mengambil daftar pengguna.")
 
-async def add_user(update: Update, context: CallbackContext):
+def add_user(update: Update, context: CallbackContext):
     """Handle /add command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
     
     if user_id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
     
     if not context.args:
-        await update.message.reply_text("❌ Gunakan format: /add <user_id>")
+        update.message.reply_text("❌ Gunakan format: /add <user_id>")
         return
     
     try:
@@ -134,7 +134,7 @@ async def add_user(update: Update, context: CallbackContext):
         
         # Check if user already exists
         if any(user['id'] == new_user_id for user in allowed_users["users"]):
-            await update.message.reply_text("❌ Pengguna sudah terdaftar.")
+            update.message.reply_text("❌ Pengguna sudah terdaftar.")
             return
         
         # Add new user
@@ -145,25 +145,25 @@ async def add_user(update: Update, context: CallbackContext):
         save_allowed_users(allowed_users)
         
         log_activity(user_id, username, "add_user", f"Added user ID: {new_user_id}")
-        await update.message.reply_text(f"✅ Pengguna dengan ID {new_user_id} berhasil ditambahkan.")
+        update.message.reply_text(f"✅ Pengguna dengan ID {new_user_id} berhasil ditambahkan.")
         
     except ValueError:
-        await update.message.reply_text("❌ ID pengguna harus berupa angka.")
+        update.message.reply_text("❌ ID pengguna harus berupa angka.")
     except Exception as e:
         print(f"Error adding user: {str(e)}")
-        await update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
+        update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
 
-async def remove_user(update: Update, context: CallbackContext):
+def remove_user(update: Update, context: CallbackContext):
     """Handle /remove command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
     
     if user_id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
     
     if not context.args:
-        await update.message.reply_text("❌ Gunakan format: /remove <user_id>")
+        update.message.reply_text("❌ Gunakan format: /remove <user_id>")
         return
     
     try:
@@ -181,26 +181,26 @@ async def remove_user(update: Update, context: CallbackContext):
         save_allowed_users(allowed_users)
         
         log_activity(user_id, username, "remove_user", f"Removed user ID: {user_to_remove}")
-        await update.message.reply_text(f"✅ Pengguna dengan ID {user_to_remove} berhasil dihapus.")
+        update.message.reply_text(f"✅ Pengguna dengan ID {user_to_remove} berhasil dihapus.")
         
     except ValueError:
-        await update.message.reply_text("❌ ID pengguna harus berupa angka.")
+        update.message.reply_text("❌ ID pengguna harus berupa angka.")
     except Exception as e:
         print(f"Error removing user: {str(e)}")
-        await update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
+        update.message.reply_text(f"❌ Terjadi kesalahan: {str(e)}")
 
-async def view_logs(update: Update, context: CallbackContext):
+def view_logs(update: Update, context: CallbackContext):
     """Handle /logs command"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
     
     if user_id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
     
     logs = load_logs()
     if not logs:
-        await update.message.reply_text("📝 Belum ada log aktivitas.")
+        update.message.reply_text("📝 Belum ada log aktivitas.")
         return
     
     # Get last 10 logs
@@ -217,15 +217,15 @@ async def view_logs(update: Update, context: CallbackContext):
         message += "-------------------\n"
     
     log_activity(user_id, username, "view_logs", "Viewed recent logs")
-    await update.message.reply_text(message)
+    update.message.reply_text(message)
 
-async def get_user_id(update: Update, context: CallbackContext):
+def get_user_id(update: Update, context: CallbackContext):
     """Handle /getid command and forwarded messages"""
     user_id = update.effective_user.id
     username = update.effective_user.username or "Unknown"
     
     if user_id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
     
     message = update.message
@@ -241,16 +241,16 @@ async def get_user_id(update: Update, context: CallbackContext):
         user_info = "Tidak dapat mendapatkan informasi pengirim"
     
     log_activity(user_id, username, "get_user_id", f"Got user info: {user_info}")
-    await message.reply_text(f"ℹ️ Informasi pengirim:\n\n{user_info}")
+    message.reply_text(f"ℹ️ Informasi pengirim:\n\n{user_info}")
 
-async def get_chat_id(update: Update, context: CallbackContext):
+def get_chat_id(update: Update, context: CallbackContext):
     """Get the current chat ID"""
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
+        update.message.reply_text("❌ Maaf, Anda tidak memiliki akses ke bot ini.")
         return
         
     chat_id = update.effective_chat.id
-    await update.message.reply_text(f"Your chat ID is: `{chat_id}`", parse_mode='Markdown')
+    update.message.reply_text(f"Your chat ID is: `{chat_id}`", parse_mode='Markdown')
 
 def main():
     """Start the bot"""
