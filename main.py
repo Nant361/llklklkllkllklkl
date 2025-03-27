@@ -5,6 +5,7 @@ import admin_bot
 import telegram_bot
 import signal
 import sys
+import asyncio
 
 # Setup logging
 logging.basicConfig(
@@ -13,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_admin_bot():
+async def run_admin_bot():
     """Run the admin bot"""
     try:
         logger.info("Starting Admin Bot...")
@@ -35,13 +36,15 @@ def run_admin_bot():
             application.add_handler(handler)
 
         logger.info("Admin Bot is ready!")
-        application.run_polling(allowed_updates=admin_bot.Update.ALL_TYPES)
+        await application.initialize()
+        await application.start()
+        await application.run_polling(allowed_updates=admin_bot.Update.ALL_TYPES)
             
     except Exception as e:
         logger.error(f"Error in Admin Bot: {str(e)}", exc_info=True)
         sys.exit(1)
 
-def run_student_bot():
+async def run_student_bot():
     """Run the student search bot"""
     try:
         logger.info("Starting Student Search Bot...")
@@ -69,7 +72,9 @@ def run_student_bot():
             application.add_handler(handler)
 
         logger.info("Student Search Bot is ready!")
-        application.run_polling(allowed_updates=telegram_bot.Update.ALL_TYPES)
+        await application.initialize()
+        await application.start()
+        await application.run_polling(allowed_updates=telegram_bot.Update.ALL_TYPES)
             
     except Exception as e:
         logger.error(f"Error in Student Search Bot: {str(e)}", exc_info=True)
@@ -80,7 +85,7 @@ def signal_handler(signum, frame):
     logger.info("Received termination signal. Shutting down bots...")
     sys.exit(0)
 
-def main():
+async def main():
     """Run both bots concurrently"""
     try:
         # Register signal handlers
@@ -89,29 +94,12 @@ def main():
         
         logger.info("Starting both bots...")
         
-        # Create processes for each bot
-        admin_process = multiprocessing.Process(target=run_admin_bot, name="AdminBot")
-        student_process = multiprocessing.Process(target=run_student_bot, name="StudentBot")
+        # Run both bots concurrently
+        await asyncio.gather(run_admin_bot(), run_student_bot())
         
-        # Start both processes
-        admin_process.start()
-        student_process.start()
-        
-        # Wait for both processes to complete
-        admin_process.join()
-        student_process.join()
-        
-    except KeyboardInterrupt:
-        logger.info("\nBots stopped by user")
-        admin_process.terminate()
-        student_process.terminate()
     except Exception as e:
         logger.error(f"Error in main process: {str(e)}", exc_info=True)
-        if 'admin_process' in locals():
-            admin_process.terminate()
-        if 'student_process' in locals():
-            student_process.terminate()
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    asyncio.run(main()) 
